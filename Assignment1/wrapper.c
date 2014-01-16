@@ -9,7 +9,7 @@ int main(int argc, char* argv[]){
     getchar();
     return 1;
   }
-  execl("/usr/bin/xterm", "/usr/bin/xterm", "-e", "./parmax", argv[1], (void*)NULL);
-  printf("If execl function is called properly this sentence should not be printed.\n");
+  execl("/usr/bin/xterm", "/usr/bin/xterm", "-e", "./parmax", argv[1], (void*)NULL);        //execl() function calls xTerm window and runs parmax on that. It exits when execution of parmax is over.
+  printf("If execl function is called properly this sentence should not be printed.\n");    //Since the process is already over when parmax is executed, this sentence should never be printed on the terminal.
   return 0;
 }
