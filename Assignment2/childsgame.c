@@ -53,10 +53,10 @@ int main(int argc, char *argv[])
 			while( (!C_WINS) && (!D_WINS) ) {
 			}
 			if(C_WINS) {
-				printf("C: Yeah!! I won\n");
+				printf("C (PID=%d): Yeah!! I won.\n", getpid());
 			}
 			else {
-				printf("C: Congratulations D!! You won.\n");
+				printf("C (PID=%d): Congratulations D!! You won.\n", getpid());
 			}
 			close(fd_C[1]); // Close the writing end.
 			break;
@@ -77,10 +77,10 @@ int main(int argc, char *argv[])
 					while( (!C_WINS) && (!D_WINS) ) {
 					}
 					if(D_WINS) {
-						printf("D: Yeah!! I won\n");
+						printf("D (PID=%d): Yeah!! I won.\n", getpid());
 					}
 					else {
-						printf("D: Congratulations C!! You won.\n");
+						printf("D (PID=%d): Congratulations C!! You won.\n", getpid());
 					}
 					close(fd_D[1]); // Close the writing end.
 					break;
@@ -106,41 +106,41 @@ int main(int argc, char *argv[])
 						num = read(fd_D[0], buffer, BUFFSIZ);
 						buffer[num] = '\0';
 						value_D = atoi(buffer);
-						printf("Parent: C chose %d and D chose %d\n", value_C, value_D);
+						printf("Parent (PID=%d): C chose %d and D chose %d.\n", getpid(), value_C, value_D);
 						if(flag == MAX) {
-							printf("Parent: Flag for this round is MAX\n");
+							printf("Parent (PID=%d): Flag for this round is MAX.\n", getpid());
 							if(value_C > value_D) {
 								points_C++;
-								printf("Parent: C wins this round.\n");
+								printf("Parent (PID=%d): C wins this round.\n", getpid());
 							}
 							else if(value_D > value_C) {
 								points_D++;
-								printf("Parent: D wins this round.\n");
+								printf("Parent (PID=%d): D wins this round.\n", getpid());
 							} 
 						}
 						else {
-							printf("Parent: Flag for this round is MIN\n");
+							printf("Parent (PID=%d): Flag for this round is MIN.\n", getpid());
 							if(value_C < value_D) {
 								points_C++;
-								printf("Parent: C wins this round.\n");
+								printf("Parent (PID=%d): C wins this round.\n", getpid());
 							}
 							else if(value_D < value_C) {
 								points_D++;
-								printf("Parent: D wins this round.\n");
+								printf("Parent (PID=%d): D wins this round.\n", getpid());
 							}
 						}
 					}
 					// Decide the winner.
-					printf("Parent: Final score is C: %d and D: %d\n", points_C, points_D);
+					printf("Parent (PID=%d): Final score is C: %d and D: %d\n", getpid(), points_C, points_D);
 					if(points_C == 10) {
 						kill(pid_C, ON_C_WINS);
 						kill(pid_D, ON_C_WINS);
-						printf("Parent: Congratulations C!! You win\n");
+						printf("Parent (PID=%d): Congratulations C!! You win.\n", getpid());
 					}
 					else {
 						kill(pid_C, ON_D_WINS);
 						kill(pid_D, ON_D_WINS);
-						printf("Parent: Congratulations D!! You win\n");
+						printf("Parent (PID=%d): Congratulations D!! You win.\n", getpid());
 					}
 					close(fd_C[0]);close(fd_D[0]); // Close all reading ends.
 					break;
@@ -170,13 +170,13 @@ void D_wins_Handler(int n) {
 void C_request_Handler(int n) {
 	char buffer[1024];
 	sprintf(buffer, "%d", rand());
-	printf("C: I choose %s\n", buffer);
+	printf("C (PID=%d): I choose %s.\n", getpid(), buffer);
 	write(fd_C[1], buffer, strlen(buffer));
 }
 
 void D_request_Handler(int n) {
 	char buffer[1024];
 	sprintf(buffer, "%d", rand());
-	printf("D: I choose %s\n", buffer);
+	printf("D (PID=%d): I choose %s.\n", getpid(), buffer);
 	write(fd_D[1], buffer, strlen(buffer));
 }
