@@ -9,7 +9,6 @@ void printArray(int A[], int size);
 int main(int argc, char* argv[]){
   if(argc < 2){
     printf("USAGE: ./parmax <size of array>\n");
-    getchar();
     return 1;
   }
   int i, max, size = atoi(argv[1]);
@@ -23,10 +22,10 @@ int main(int argc, char* argv[]){
   for(i = 0; i<size; i++){
     A[i] = rand()%127;                                      //Initialization of array with random numbers
   }
-  max = findmax(A, 0, size-1);                              //Function call to find maximum
   printArray(A, size);
-  printf("Maximum = %d\n", max);
-  getchar();
+  max = findmax(A, 0, size-1);                              //Function call to find maximum
+  printf("Maximum element in the array = %d\n", max);
+  sleep(5);
   return 0;
 }
 
@@ -38,6 +37,7 @@ int findmax(int A[], int L, int R){
       if(max<A[iterator])
         max = A[iterator];
     }
+    printf("The maximum element for the process %d (with parent process %d) is %d.\n", getpid(), getppid(), max);
     return max;
   }
   else{                                                     //If size of chunk is greater than 10, call a function which creates two processes, one for each half, calculates maximum for each half recursively and returns the overall maximum
