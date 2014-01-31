@@ -41,7 +41,10 @@ int main(int argn, char *arg[])
 		}
 
 		if(strcmp(argv[0], "cd") == 0) {
-			if(chdir(argv[1]) != 0) {
+			if(argv[1] == NULL){
+                                chdir(getenv("HOME"));
+                        }
+                        else if(chdir(argv[1]) != 0) {
 				printf("Error: No such directory.\n");
 			}
 		}
@@ -130,7 +133,29 @@ int main(int argn, char *arg[])
 			break;
 		}
 		else {
-			execute(argv);
+                        DIR *mydir;
+                        struct dirent *myfile;
+                        int flag = 0;
+                        
+                        getcwd(buffer, BUFFSIZ - 1);
+                        mydir = opendir(buffer);
+                        while((myfile = readdir(mydir)) != NULL)
+                        {
+                                if(strcmp(myfile->d_name, argv[0]) == 0) {
+                                        flag = 1;
+                                        break;
+                                }
+                        }
+                        closedir(mydir);
+			if(flag) {
+                             char* t = (char*) malloc((strlen(argv[0]) + 3) * sizeof(char));
+                             t[0] = '.';
+                             t[1] = '/';
+                             strcat(t, argv[0]);
+                             free(argv[0]);
+                             argv[0] = t;   
+                        }
+                        execute(argv);
 		}
 
 		for (i = 0; i < argc; ++i)
@@ -157,7 +182,6 @@ void execute(char **argv)
                printf("Error: exec failed\n");
                exit(1);
           }
-          exit(0);
      }
      else {                                  /* for the parent:      */
           while (wait(&status) != pid)       /* wait for completion  */
