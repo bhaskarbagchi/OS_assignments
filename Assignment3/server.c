@@ -13,7 +13,17 @@ typedef struct _msgBuf{
 } msgBuf;
 
 void processMsg(char msg[], char proc[]){
-  strcpy(proc, msg);
+  int i;
+  for(i = 0; i < strlen(msg); i++){
+    if(isupper(msg[i]))
+      proc[i] = tolower(msg[i]);
+    else if(islower(msg[i]))
+      proc[i] = toupper(msg[i]);
+    else
+      proc[i] = msg[i];
+  }
+  proc[i] = '\0';
+  return;
 }
 
 int main(int argc, char* argv[]){
