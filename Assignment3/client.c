@@ -47,11 +47,13 @@ int main(int argc, char* argv[]){
   /*
    * recieve message
    */
-  if(msgrcv(DOWN, &rBuf, MSGSZ, getpid(), 0) < 0){
+  int size;
+  if((size = msgrcv(DOWN, &rBuf, MSGSZ, getpid(), 0)) < 0){
     printf("Error in recieving message.\n");
     exit(0);
   }
   else{
+    rBuf.mtext[size] = '\0';
     printf("Processed messege from server: %s\n", rBuf.mtext);
   }
   

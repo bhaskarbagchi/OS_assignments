@@ -12,9 +12,10 @@ typedef struct _msgBuf{
   char mtext[MSGSZ];
 } msgBuf;
 
-void processMsg(char msg[], char proc[]){
+void processMsg(char msg[], int size, char ret[]){
   int i;
-  for(i = 0; i < strlen(msg); i++){
+  char proc[MSGSZ];
+  for(i = 0; i < size; i++){
     if(isupper(msg[i]))
       proc[i] = tolower(msg[i]);
     else if(islower(msg[i]))
@@ -22,7 +23,8 @@ void processMsg(char msg[], char proc[]){
     else
       proc[i] = msg[i];
   }
-  proc[i] = '\0';
+  proc[size] = '\0';
+  strcpy(ret, proc);
   return;
 }
 
@@ -55,7 +57,8 @@ int main(int argc, char* argv[]){
     /*
      * recieve message
      */
-    if(msgrcv(UP, &rBuf, MSGSZ, 0, 0) < 0){
+    int size;
+    if((size = msgrcv(UP, &rBuf, MSGSZ, 0, 0)) < 0){
       printf("Error in recieving message.\n");
       exit(0);
     }
@@ -63,12 +66,12 @@ int main(int argc, char* argv[]){
       time(&now);
       printf("Message recieved at time: %s", ctime(&now));
     }
-    
     /*
      * process messege
      */
     sBuf.mtype = rBuf.mtype;
-    processMsg(rBuf.mtext, sBuf.mtext);
+    size /= sizeof(char);
+    processMsg(rBuf.mtext, size, sBuf.mtext);
     bufLen = strlen(sBuf.mtext);
 
     /*
