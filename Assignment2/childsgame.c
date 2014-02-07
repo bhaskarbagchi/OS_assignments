@@ -143,6 +143,9 @@ int main(int argc, char *argv[])
 						printf("Parent (PID=%d): Congratulations D!! You win.\n", getpid());
 					}
 					close(fd_C[0]);close(fd_D[0]); // Close all reading ends.
+					// Remove the child processes.
+					wait(&num);
+					wait(&num);
 					break;
 				case -1:
 					printf("Sorry!!The game cannot start without child D.\n");
