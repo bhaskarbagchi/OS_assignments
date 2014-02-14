@@ -37,7 +37,7 @@ int main(int argc, char* argv[]){
    */
   sBuf.mtype = getpid();
   printf("Insert messege to send to server: ");
-  scanf("%s", sBuf.mtext);
+  scanf(" %[^\n]", sBuf.mtext);
   bufLen = strlen(sBuf.mtext);
   if(msgsnd(UP, &sBuf, bufLen, IPC_NOWAIT) < 0){
     printf("Messege sending failed!!!\n");
