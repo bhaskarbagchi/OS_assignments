@@ -21,7 +21,7 @@
 #define FD_STDERR 3
 
 char buffer[BUFFSIZ], userInput;
-int RUN;
+int RUN, SAVED_INFILE, SAVED_OUTFILE, SAVED_ERRFILE;
 
 /* Keep track of attributes of the shell.  */
 pid_t shell_pgid;
@@ -55,7 +55,6 @@ typedef struct job
 
 /* The active jobs are linked into a list.  This is its head.   */
 job *first_job = NULL;
-int jobCount = 0;
 
 void executeJob();
 void getTextLine();
@@ -72,12 +71,15 @@ int mark_process_status (pid_t pid, int status);
 void update_status (void);
 void wait_for_job (job *j);
 void format_job_info (job *j, const char *status);
-void do_job_notification (void);
+void do_job_notification (int p);
 void mark_job_as_running (job *j);
 void continue_job (job *j, int foreground);
 job* parse();
 void windup(job* j);
 int recollect(job* j, process* p, int* fdType, char* tempBuff, char* start, int length, int whitespace, int* cmd_index);
+int checkBuiltInCommands(char** argv, int infile, int outfile, int errfile);
+void setupRedirection(int infile, int outfile, int errfile);
+void resetRedirection();
 
 int main(int argn, char *arg[])
 {
@@ -126,7 +128,7 @@ if (shell_is_interactive)
            	signal (SIGTSTP, SIG_IGN);
            	signal (SIGTTIN, SIG_IGN);
            	signal (SIGTTOU, SIG_IGN);
-           	signal (SIGCHLD, SIG_IGN);
+           	signal (SIGCHLD, &do_job_notification);
 
 			/* Put ourselves in our own process group.  */
 			shell_pgid = getpid ();
@@ -146,129 +148,18 @@ if (shell_is_interactive)
 
 void handleUserCommand()
 {
-    int i;
-	char *p, **argv;
-
 	job* j = parse();
 
 	if(j == NULL) {
-		// process* p; int i;
-		
-		// for (; j ; j = j->next)
-		// {
-		// 	for(p = j->first_process ; p ; p = p->next) {
-		// 		printf("Process: %s\n", p->argv[0]);
-		// 		for(i = 1 ; p->argv[i] ; i++) {
-		// 			printf("Arg %d: %s\n", i, p->argv[i]);
-		// 		}
-		// 	}
-		// }
 		return;
 	}
 
-	argv = j->first_process->argv;
+	/* Add job to job list. */
+	j->next = first_job;
+	first_job = j;
 
-	if(strcmp(argv[0], "cd") == 0) {
-		if(argv[1] == NULL){
-                            chdir(getenv("HOME"));
-                    }
-                    else if(chdir(argv[1]) != 0) {
-			printf("Error: No such directory.\n");
-		}
-	}
-	else if(strcmp(argv[0], "pwd") == 0) {
-		getcwd(buffer, BUFFSIZ - 1);
-		printf("%s\n", buffer);
-	}
-	else if(strcmp(argv[0], "mkdir") == 0) {
-		if(mkdir(argv[1], 0775) != 0) {
-			printf("Error: Cannot create directory.\n");
-		}
-	}
-	else if(strcmp(argv[0], "rmdir") == 0) {
-		if(rmdir(argv[1]) != 0) {
-			printf("Error: Cannot remove the directory.\n");
-		}
-	}
-	else if(strcmp(argv[0], "ls") == 0) {
-		if(argv[1] != NULL) {
-			if(strcmp(argv[1], "-l") == 0) {
-				DIR *mydir;
-			    struct dirent *myfile;
-			    struct stat mystat;
-
-			    getcwd(buffer, BUFFSIZ - 1);
-			    mydir = opendir(buffer);
-			    while((myfile = readdir(mydir)) != NULL)
-			    {
-			    	if(myfile->d_name[0] == '.') {
-			        	continue;
-			        }
-			        stat(myfile->d_name, &mystat);
-			        // Permissions
-			        printf( (S_ISDIR(mystat.st_mode)) ? "d" : "-");
-				    printf( (mystat.st_mode & S_IRUSR) ? "r" : "-");
-				    printf( (mystat.st_mode & S_IWUSR) ? "w" : "-");
-				    printf( (mystat.st_mode & S_IXUSR) ? "x" : "-");
-				    printf( (mystat.st_mode & S_IRGRP) ? "r" : "-");
-				    printf( (mystat.st_mode & S_IWGRP) ? "w" : "-");
-				    printf( (mystat.st_mode & S_IXGRP) ? "x" : "-");
-				    printf( (mystat.st_mode & S_IROTH) ? "r" : "-");
-				    printf( (mystat.st_mode & S_IWOTH) ? "w" : "-");
-				    printf( (mystat.st_mode & S_IXOTH) ? "x" : "-");
-				    printf(" ");
-				    // Username and group name
-				    printf("%s ", getpwuid(mystat.st_uid)->pw_name);
-				    printf("%s ", getgrgid(mystat.st_gid)->gr_name); 
-				    // Last access
-				    struct tm* tm_info;
-				    tm_info = localtime(&(mystat.st_mtime));
-				    strftime(buffer, 25, "%Y:%m:%d %H:%M:%S", tm_info);
-					printf("%s ", buffer);
-				    //Size   
-			        printf("%d ", (int) mystat.st_size);
-			        // File name
-			        printf(" %s\n", myfile->d_name);
-			    }
-			    closedir(mydir);
-			}
-			else {
-				// To do something here.
-				//launch_job(j);
-			}
-		}
-		else {
-			DIR *mydir;
-		    struct dirent *myfile;
-
-		    getcwd(buffer, BUFFSIZ - 1);
-		    mydir = opendir(buffer);
-		    while((myfile = readdir(mydir)) != NULL)
-		    {
-		        if(myfile->d_name[0] == '.') {
-		        	continue;
-		        }
-		        printf("%s ", myfile->d_name);
-		    }
-		    closedir(mydir);
-		    printf("\n");
-		}
-	}
-	else if(strcmp(argv[0], "exit") == 0) {
-		RUN = 0;
-	}
-	else {
-    	launch_job(j);
-  		// process* p; int i;
-		// for(p = j->first_process ; p ; p = p->next) {
-		// 	printf("Process: %s\n", p->argv[0]);
-		// 	for(i = 1 ; p->argv[i] ; i++) {
-		// 		printf("\tArg %d: %s\n", i, p->argv[i]);
-		// 	}
-		// }
-	}
-
-	windup(j);
+	/* Launch job */
+	launch_job(j);
 }
 
 void
@@ -294,6 +185,9 @@ launch_job (job *j)
 	   else
 	     outfile = j->stdout;
 
+	 /* Check built-in commands */
+	 /*if(!checkBuiltInCommands(p->argv, infile, outfile, j->stderr))
+	 {*/
 	   /* Fork the child processes.  */
 	   pid = fork ();
 	   if (pid == 0)
@@ -317,6 +211,7 @@ launch_job (job *j)
 	           setpgid (pid, j->pgid);
 	         }
 	     }
+	 /*}*/
 
 	   /* Clean up after pipes.  */
 	   if (infile != j->stdin)
@@ -326,7 +221,7 @@ launch_job (job *j)
 	   infile = mypipe[0];
 	 }
 
-	format_job_info (j, "launched");
+	//format_job_info (j, "launched");
 
 	if (!shell_is_interactive)
 	 wait_for_job (j);
@@ -515,13 +410,13 @@ mark_process_status (pid_t pid, int status)
 	           else
 	             {
 	               p->completed = 1;
-	               if (WIFSIGNALED (status))
-	                 fprintf (stderr, "%d: Terminated by signal %d.\n",
-	                          (int) pid, WTERMSIG (p->status));
+	               if (WIFSIGNALED (status)) {
+	                 //fprintf (stderr, "%d: Terminated by signal %d.\n", (int) pid, WTERMSIG (p->status));
+	             	}
 	             }
 	           return 0;
 	          }
-	   fprintf (stderr, "No child process %d.\n", pid);
+	   //fprintf (stderr, "No child process %d.\n", pid);
 	   return -1;
 	 }
 	else if (pid == 0 || errno == ECHILD)
@@ -576,10 +471,10 @@ fprintf (stderr, "%ld : (%s)\n", (long)j->pgid, status);
 Delete terminated jobs from the active job list.  */
      
 void
-do_job_notification (void)
+do_job_notification (int p)
 {
 	job *j, *jlast, *jnext;
-	process *p;
+	//process *p;
 
 	/* Update status information for child processes.  */
 	update_status ();
@@ -592,7 +487,7 @@ do_job_notification (void)
 	   /* If all processes have completed, tell the user the job has
 	      completed and delete it from the list of active jobs.  */
 	   if (job_is_completed (j)) {
-	     format_job_info (j, "completed");
+	     //format_job_info (j, "completed");
 	     if (jlast)
 	       jlast->next = jnext;
 	     else
@@ -603,7 +498,7 @@ do_job_notification (void)
 	   /* Notify the user about stopped jobs,
 	      marking them so that we won't do this more than once.  */
 	   else if (job_is_stopped (j) && !j->notified) {
-	     format_job_info (j, "stopped");
+	     //format_job_info (j, "stopped");
 	     j->notified = 1;
 	     jlast = j;
 	   }
@@ -637,7 +532,7 @@ continue_job (job *j, int foreground)
 }
 
 job* parse() {
-	int i, failure = 0;
+	int failure = 0;
 	job* j = NULL;
 	process* p;
 
@@ -646,6 +541,7 @@ job* parse() {
 	p->next = NULL;
 	p->argv = (char**) malloc(BUFFSIZ * sizeof(char*));
 	p->argv[0] = NULL;
+	j->pgid = 0;
 	j->first_process = p;
 	j->foreground = 1;
 	j->stdin = STDIN_FILENO;
@@ -792,4 +688,170 @@ void windup(job* j) {
 	}
 
 	free(j);
+}
+
+int checkBuiltInCommands(char** argv, int infile, int outfile, int errfile) {
+
+	int BUILT_IN = 0;
+
+	if(strcmp(argv[0], "cd") == 0) {
+		BUILT_IN = 1;
+		setupRedirection(infile, outfile, errfile);
+
+		if(argv[1] == NULL){
+                            chdir(getenv("HOME"));
+                    }
+                    else if(chdir(argv[1]) != 0) {
+			printf("Error: No such directory.\n");
+		}
+
+		resetRedirection();
+	}
+	else if(strcmp(argv[0], "pwd") == 0) {
+		BUILT_IN = 1;
+		setupRedirection(infile, outfile, errfile);
+
+		getcwd(buffer, BUFFSIZ - 1);
+		printf("%s\n", buffer);
+
+		resetRedirection();
+	}
+	else if(strcmp(argv[0], "mkdir") == 0) {
+		BUILT_IN = 1;
+		setupRedirection(infile, outfile, errfile);
+
+		if(mkdir(argv[1], 0775) != 0) {
+			printf("Error: Cannot create directory.\n");
+		}
+
+		resetRedirection();
+	}
+	else if(strcmp(argv[0], "rmdir") == 0) {
+		BUILT_IN = 1;
+		setupRedirection(infile, outfile, errfile);
+
+		if(rmdir(argv[1]) != 0) {
+			printf("Error: Cannot remove the directory.\n");
+		}
+
+		resetRedirection();
+	}
+	else if(strcmp(argv[0], "ls") == 0) {
+		if(argv[1] != NULL) {
+			if(strcmp(argv[1], "-l") == 0) {
+				BUILT_IN = 1;
+				setupRedirection(infile, outfile, errfile);
+
+				DIR *mydir;
+			    struct dirent *myfile;
+			    struct stat mystat;
+
+			    getcwd(buffer, BUFFSIZ - 1);
+			    mydir = opendir(buffer);
+			    while((myfile = readdir(mydir)) != NULL)
+			    {
+			    	if(myfile->d_name[0] == '.') {
+			        	continue;
+			        }
+			        stat(myfile->d_name, &mystat);
+			        // Permissions
+			        printf( (S_ISDIR(mystat.st_mode)) ? "d" : "-");
+				    printf( (mystat.st_mode & S_IRUSR) ? "r" : "-");
+				    printf( (mystat.st_mode & S_IWUSR) ? "w" : "-");
+				    printf( (mystat.st_mode & S_IXUSR) ? "x" : "-");
+				    printf( (mystat.st_mode & S_IRGRP) ? "r" : "-");
+				    printf( (mystat.st_mode & S_IWGRP) ? "w" : "-");
+				    printf( (mystat.st_mode & S_IXGRP) ? "x" : "-");
+				    printf( (mystat.st_mode & S_IROTH) ? "r" : "-");
+				    printf( (mystat.st_mode & S_IWOTH) ? "w" : "-");
+				    printf( (mystat.st_mode & S_IXOTH) ? "x" : "-");
+				    printf(" ");
+				    // Username and group name
+				    printf("%s ", getpwuid(mystat.st_uid)->pw_name);
+				    printf("%s ", getgrgid(mystat.st_gid)->gr_name); 
+				    // Last access
+				    struct tm* tm_info;
+				    tm_info = localtime(&(mystat.st_mtime));
+				    strftime(buffer, 25, "%Y:%m:%d %H:%M:%S", tm_info);
+					printf("%s ", buffer);
+				    //Size   
+			        printf("%d ", (int) mystat.st_size);
+			        // File name
+			        printf(" %s\n", myfile->d_name);
+			    }
+			    closedir(mydir);
+
+			    resetRedirection();
+			}
+		}
+		else {
+			BUILT_IN = 1;
+			setupRedirection(infile, outfile, errfile);
+
+			DIR *mydir;
+		    struct dirent *myfile;
+
+		    getcwd(buffer, BUFFSIZ - 1);
+		    mydir = opendir(buffer);
+		    while((myfile = readdir(mydir)) != NULL)
+		    {
+		        if(myfile->d_name[0] == '.') {
+		        	continue;
+		        }
+		        printf("%s ", myfile->d_name);
+		    }
+		    closedir(mydir);
+		    printf("\n");
+
+		    resetRedirection();
+		}
+	}
+	else if(strcmp(argv[0], "exit") == 0) {
+		BUILT_IN = 1;
+		RUN = 0;
+	}
+
+	return BUILT_IN;
+}
+
+void setupRedirection(int infile, int outfile, int errfile) {
+
+	SAVED_INFILE = -1;
+	SAVED_OUTFILE = -1;
+	SAVED_ERRFILE = -1;
+
+	/* Set the standard input/output channels of the new process.  */
+	if (infile != STDIN_FILENO)
+	 {
+	 	SAVED_INFILE = dup(STDIN_FILENO);
+	   dup2 (infile, STDIN_FILENO);
+	   close (infile);
+	 }
+	if (outfile != STDOUT_FILENO)
+	 {
+	 	SAVED_OUTFILE = dup(STDOUT_FILENO);
+	   dup2 (outfile, STDOUT_FILENO);
+	   close (outfile);
+	 }
+	if (errfile != STDERR_FILENO)
+	 {
+	 	SAVED_ERRFILE = dup(STDERR_FILENO);
+	   dup2 (errfile, STDERR_FILENO);
+	   close (errfile);
+	 }
+}
+
+void resetRedirection() {
+	if(SAVED_INFILE != -1) {
+		dup2 (SAVED_INFILE, STDIN_FILENO);
+		close(SAVED_INFILE);
+	}
+	if(SAVED_OUTFILE != -1) {
+		dup2 (SAVED_OUTFILE, STDOUT_FILENO);
+		close(SAVED_OUTFILE);
+	}
+	if(SAVED_ERRFILE != -1) {
+		dup2 (SAVED_ERRFILE, STDERR_FILENO);
+		close(SAVED_ERRFILE);
+	}
 }
