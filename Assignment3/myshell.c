@@ -212,6 +212,10 @@ launch_job (job *j)
 	         }
 	     }
 	 }
+	 else {
+	 	p->completed = 1;
+	 	do_job_notification(0);
+	 }
 
 	   /* Clean up after pipes.  */
 	   if (infile != j->stdin)
@@ -707,7 +711,7 @@ int checkBuiltInCommands(char** argv, int infile, int outfile, int errfile) {
 
 		resetRedirection();
 	}
-	/*else if(strcmp(argv[0], "pwd") == 0) {
+	else if(strcmp(argv[0], "pwd") == 0) {
 		BUILT_IN = 1;
 		setupRedirection(infile, outfile, errfile);
 
@@ -805,7 +809,7 @@ int checkBuiltInCommands(char** argv, int infile, int outfile, int errfile) {
 
 		    resetRedirection();
 		}
-	}*/
+	}
 	else if(strcmp(argv[0], "exit") == 0) {
 		BUILT_IN = 1;
 		RUN = 0;
