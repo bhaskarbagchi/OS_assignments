@@ -711,6 +711,7 @@ int checkBuiltInCommands(char** argv, int infile, int outfile, int errfile) {
 
 		resetRedirection();
 	}
+	/*
 	else if(strcmp(argv[0], "pwd") == 0) {
 		BUILT_IN = 1;
 		setupRedirection(infile, outfile, errfile);
@@ -809,7 +810,7 @@ int checkBuiltInCommands(char** argv, int infile, int outfile, int errfile) {
 
 		    resetRedirection();
 		}
-	}
+	}*/
 	else if(strcmp(argv[0], "exit") == 0) {
 		BUILT_IN = 1;
 		RUN = 0;
