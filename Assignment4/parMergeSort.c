@@ -41,10 +41,10 @@ int main(int argc, char *argv[])
 		scanf("%d", &ms);
 	}
 
-	key = ftok("/usr/local/lib/", 0);
+	key = ftok("/usr/local/lib/", getpid());
 
 	 /* Create the segment. */
-    if ((shm_id = shmget(key, n, IPC_CREAT | 0666)) < 0) {
+    if ((shm_id = shmget(key, n*sizeof(int), IPC_CREAT | 0666)) < 0) {
         perror("shmget");
         exit(1);
     }
