@@ -130,7 +130,7 @@ void *worker(void *arg){
 		int cancel;
 		int seat_no;
 		if(no_seats_booked>0){
-			cancel = rand()%no_seats_booked + 1;
+			cancel = (rand()%no_seats_booked) + 1;
 		}
 		switch(query){
 			case INQUIRY: 		{
@@ -236,6 +236,9 @@ void *worker(void *arg){
 									}
 									char pp[1024];
 									sprintf(pp, "[%d]\t\tBooking seat no ", tno);
+									booked = head;
+									while(booked->next != NULL)
+										booked = booked->next;
 									for(k = 0; k < CAPACITY_OF_TRAIN; k++){
 										if(Train[train_no-10000].seats[k] == 0){
 											Train[train_no-10000].no_available_seats--;
@@ -278,7 +281,7 @@ void *worker(void *arg){
 									} 
 									int i;
 									temp = head;
-									for(i = 0; i<cancel-1; i++)
+									for(i = 1; i<cancel-1; i++)
 										temp = temp->next;
 									train_no = temp->next->train_no;
 									seat_no = temp->next->seat_no;
@@ -308,16 +311,16 @@ void *worker(void *arg){
 									Table[i].no_of_threads = 1;
 									pthread_mutex_unlock(&table_mutex);
 									conc_query_count++;
-									pthread_mutex_unlock(&conc_query_count_mutex);
-									int j;
-									if(Train[train_no].seats[seat_no] == 1){
-										Train[train_no].seats[seat_no] = 0;
-									}
+									no_seats_booked--;
 									booked_tickets *x;
 									x = temp->next;
 									temp->next = temp->next->next;
 									free(x);
-									no_seats_booked--;
+									pthread_mutex_unlock(&conc_query_count_mutex);
+									int j;
+									if(Train[train_no-10000].seats[seat_no] == 1){
+										Train[train_no-10000].seats[seat_no] = 0;
+									}
 									printf("[%d]\t\tWaiting for bank refund.\n", tno);
 									sleep(rand()%5);
 									printf("[%d]\tTicket cancelled. Train no. %d Seat no. %d\n", tno, train_no, seat_no);
